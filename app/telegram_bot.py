@@ -434,7 +434,10 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def build_application() -> Application:
-    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    builder = Application.builder().token(TELEGRAM_BOT_TOKEN)
+    if os.getenv("WEBHOOK_URL") or os.getenv("RENDER_EXTERNAL_URL"):
+        builder = builder.updater(None)  # disable updater in webhook mode
+    app = builder.build()
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("channel", cmd_channel))

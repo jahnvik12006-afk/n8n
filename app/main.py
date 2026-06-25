@@ -32,17 +32,18 @@ async def lifespan(app: FastAPI):
 
     if WEBHOOK_URL:
         webhook = f"{WEBHOOK_URL}/webhook"
-        await _tg_app.bot.set_webhook(webhook)
+        await _tg_app.bot.set_webhook(webhook, drop_pending_updates=False)
         logger.info(f"Webhook set: {webhook}")
     else:
-        # Local fallback: polling
-        await _tg_app.updater.start_polling()
+        # Local: polling mode
+        if _tg_app.updater:
+            await _tg_app.updater.start_polling()
         logger.info("Polling started (local mode)")
 
     logger.info("HisuClaw started")
     yield
 
-    if not WEBHOOK_URL:
+    if _tg_app.updater:
         await _tg_app.updater.stop()
 
     await _tg_app.stop()
