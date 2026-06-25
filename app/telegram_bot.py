@@ -1,4 +1,5 @@
 """Telegram bot — admin-only, clean minimal UI (max 1 emoji per message)."""
+import os
 import uuid
 import json
 import logging
