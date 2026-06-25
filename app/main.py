@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
 _tg_app = None
 
-WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_URL", "")  # Render sets this automatically
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", os.getenv("RENDER_EXTERNAL_URL", "")).rstrip("/")
 
 
 @asynccontextmanager
