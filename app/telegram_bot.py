@@ -120,17 +120,21 @@ def _fmt_growth(d: dict) -> str:
 def _fmt_ctr(d: dict) -> str:
     rows = d.get("ctr_data", [])
     if not rows:
-        return "No CTR data."
-    avg_ctr = sum(float(r[2]) for r in rows if len(r) > 2) / len(rows) * 100
-    grade = "Good" if avg_ctr > 5 else "Average" if avg_ctr > 3 else "Needs Work"
+        return "No data."
+    # rows: [day, views, estimatedMinutesWatched, subscribersGained]
+    total_views = sum(int(r[1]) for r in rows if len(r) > 1)
+    total_mins = sum(int(r[2]) for r in rows if len(r) > 2)
+    max_v = max((int(r[1]) for r in rows if len(r) > 1), default=1)
     lines = [
-        "🎯 *CTR — Last 28 Days*", "━━━━━━━━━━━━━━━━━━━━",
-        f"Avg CTR: `{avg_ctr:.2f}%` — _{grade}_", "", "*Daily (last 7d)*",
+        "🎯 *Views & Watch Time — Last 28 Days*", "━━━━━━━━━━━━━━━━━━━━",
+        f"Total Views: `{total_views:,}`",
+        f"Watch Time:  `{total_mins:,}` mins",
+        "", "*Daily (last 7d)*",
     ]
     for r in rows[-7:]:
-        ctr = float(r[2]) * 100 if len(r) > 2 else 0
-        bar = _bar(ctr, 10, 8)
-        lines.append(f"`{r[0]}` {bar} `{ctr:.1f}%`")
+        views = int(r[1]) if len(r) > 1 else 0
+        bar = _bar(views, max_v, 8)
+        lines.append(f"`{r[0]}` {bar} `{views:,}`")
     return "\n".join(lines)
 
 

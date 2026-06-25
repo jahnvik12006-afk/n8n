@@ -184,9 +184,7 @@ class AnalyzeRetention(Tool):
             startDate=start,
             endDate=end,
             metrics="averageViewDuration,averageViewPercentage",
-            dimensions="video",
-            sort="-averageViewDuration",
-            maxResults=10,
+            dimensions="day",
         )
         if video_id:
             params["filters"] = f"video=={video_id}"
@@ -212,7 +210,7 @@ class AnalyzeCTR(Tool):
             ids=f"channel=={cid}",
             startDate=start,
             endDate=end,
-            metrics="views,impressions,impressionClickThroughRate",
+            metrics="views,estimatedMinutesWatched,subscribersGained",
             dimensions="day",
         ).execute()
         return {"ctr_data": result.get("rows", []), "headers": result.get("columnHeaders", [])}
