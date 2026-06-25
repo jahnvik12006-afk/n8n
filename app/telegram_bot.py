@@ -474,8 +474,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Reply keyboard shortcuts
     if text in MENU_MAP:
         cmd = MENU_MAP[text]
-        await context.bot.send_message(update.effective_chat.id, f"/{cmd}")
-        fake_ctx = context
         handlers_map = {
             "channel": cmd_channel, "videos": cmd_videos, "growth": cmd_growth,
             "retention": cmd_retention, "ctr": cmd_ctr, "seo": cmd_seo,
