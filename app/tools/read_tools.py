@@ -179,16 +179,17 @@ class AnalyzeRetention(Tool):
         cid = _channel_id()
         start, end = _date_range(28)
 
-        filters = f"video=={video_id}" if video_id else None
         params = dict(
             ids=f"channel=={cid}",
             startDate=start,
             endDate=end,
             metrics="averageViewDuration,averageViewPercentage",
             dimensions="video",
+            sort="-averageViewDuration",
+            maxResults=10,
         )
-        if filters:
-            params["filters"] = filters
+        if video_id:
+            params["filters"] = f"video=={video_id}"
 
         result = ana.reports().query(**params).execute()
         return {"retention_data": result.get("rows", []), "headers": result.get("columnHeaders", [])}
