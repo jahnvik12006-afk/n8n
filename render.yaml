@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: hisuclaw
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    disk:
+      name: hisuclaw-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: YOUTUBE_CLIENT_ID
+        sync: false
+      - key: YOUTUBE_CLIENT_SECRET
+        sync: false
+      - key: YOUTUBE_REFRESH_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_ADMIN_ID
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_BASE_URL
+        sync: false
+      - key: AUTHORIZATION_TOKEN
+        sync: false
+      - key: PORT
+        value: "8000"
+      - key: MEMORY_RETENTION_HOURS
+        value: "24"
