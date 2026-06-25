@@ -42,9 +42,7 @@ async def lifespan(app: FastAPI):
     logger.info("HisuClaw started")
     yield
 
-    if WEBHOOK_URL:
-        await _tg_app.bot.delete_webhook()
-    else:
+    if not WEBHOOK_URL:
         await _tg_app.updater.stop()
 
     await _tg_app.stop()
