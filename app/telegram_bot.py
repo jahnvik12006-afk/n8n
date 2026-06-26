@@ -324,7 +324,7 @@ async def cmd_strategy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         weekly = parsed.get("weekly", [])
         lines = [f"<b><blockquote>✦ ᴄᴏɴᴛᴇɴᴛ sᴛʀᴀᴛᴇɢʏ ✦</blockquote>\n{DIV}</b>"]
         for w in weekly:
-            tip = f"\n   💡 {w['tip']}" if w.get("tip") else ""
+            tip = f"\n   → {w['tip']}" if w.get("tip") else ""
             lines.append(
                 f"\n<b><blockquote>・ {w.get('day','')}</blockquote></b>"
                 f"\n<blockquote>{w.get('content','')}{tip}"
@@ -498,7 +498,7 @@ async def cmd_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     url = context.args[0]
     msg = await update.message.reply_text(
-        f"<b><blockquote>⏳ ꜰᴇᴛᴄʜɪɴɢ ꜰᴏʀᴍᴀᴛs...</blockquote></b>", parse_mode=ParseMode.HTML
+        f"<b><blockquote>◌ ꜰᴇᴛᴄʜɪɴɢ ꜰᴏʀᴍᴀᴛs...</blockquote></b>", parse_mode=ParseMode.HTML
     )
     try:
         data = await TOOLS["FetchDownloadFormats"].execute(url=url)
@@ -520,9 +520,9 @@ async def cmd_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     rows = []
     for i, f in enumerate(video_fmts[:4]):
-        rows.append([InlineKeyboardButton(f"🎬 {f['quality']}", callback_data=f"dl:{token}:{i}:v")])
+        rows.append([InlineKeyboardButton(f"▶ {f['quality']}", callback_data=f"dl:{token}:{i}:v")])
     for i, f in enumerate(audio_fmts[:2]):
-        rows.append([InlineKeyboardButton(f"🎵 {f['quality']}", callback_data=f"dl:{token}:{i}:a")])
+        rows.append([InlineKeyboardButton(f"♪ {f['quality']}", callback_data=f"dl:{token}:{i}:a")])
 
     keyboard = InlineKeyboardMarkup(rows)
     thumb = data.get("thumbnail", "")
@@ -548,10 +548,10 @@ async def _do_download(query, token: str, fmt_idx: int, kind: str):
     fmt = (video_fmts if kind == "v" else audio_fmts)[fmt_idx]
 
     await query.edit_message_caption(
-        caption=f"<b><blockquote>⬇️ ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ <code>{fmt['quality']}</code>...\nᴘʟᴇᴀsᴇ ᴡᴀɪᴛ 🙏</blockquote></b>",
+        caption=f"<b><blockquote>↓ ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ <code>{fmt['quality']}</code>...\nᴘʟᴇᴀsᴇ ᴡᴀɪᴛ </blockquote></b>",
         parse_mode=ParseMode.HTML,
     ) if query.message.photo else await query.edit_message_text(
-        f"<b><blockquote>⬇️ ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ <code>{fmt['quality']}</code>...\nᴘʟᴇᴀsᴇ ᴡᴀɪᴛ 🙏</blockquote></b>",
+        f"<b><blockquote>↓ ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ <code>{fmt['quality']}</code>...\nᴘʟᴇᴀsᴇ ᴡᴀɪᴛ </blockquote></b>",
         parse_mode=ParseMode.HTML,
     )
 
@@ -570,7 +570,7 @@ async def _do_download(query, token: str, fmt_idx: int, kind: str):
             f"<b><blockquote>✦ ᴅᴏᴡɴʟᴏᴀᴅ ᴄᴏᴍᴘʟᴇᴛᴇ ✦</blockquote>\n{DIV}\n"
             f"<blockquote>・ ǫᴜᴀʟɪᴛʏ: {fmt['quality']}\n"
             f"・ ꜰᴏʀᴍᴀᴛ: {ext.upper()}\n"
-            f"⚠️ <i>ᴛʜɪs ꜰɪʟᴇ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ 5 ᴍɪɴs</i></blockquote>\n{DIV}</b>"
+            f"! <i>ᴛʜɪs ꜰɪʟᴇ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ 5 ᴍɪɴs</i></blockquote>\n{DIV}</b>"
         )
 
         chat_id = query.message.chat_id
