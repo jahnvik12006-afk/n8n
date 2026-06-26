@@ -66,9 +66,10 @@ def _fmt_titles(d: dict) -> str:
     for i, t in enumerate(titles, 1):
         bar = _bar(t["score"], 100, 8)
         lines.append(
-            f"\n<b>{i}.</b> <i>{t['title']}</i>\n"
-            f"   {bar} {t['score']}/100 — {', '.join(t.get('reasons', []))}"
+            f"\n{i}. <code>{t['title']}</code>\n"
+            f"   {bar} {t['score']}/100"
         )
+    lines.append(f"\n<i>Tap any title to copy</i>")
     return "\n".join(lines)
     await update.message.chat.send_action(ChatAction.TYPING)
 
@@ -158,7 +159,7 @@ def _fmt_seo(d: dict) -> str:
         desc = "OK" if v["description_length"] > 200 else "!"
         tags = "OK" if v["tag_count"] >= 10 else "!"
         items.append(
-            f"<i>{v['title'][:45]}</i>\n"
+            f"<code>{v['title'][:60]}</code>\n"
             f"   ᴛɪᴛʟᴇ {v['title_length']}ᴄʜ [{t}]  ᴅᴇsᴄ {v['description_length']}ᴄʜ [{desc}]  ᴛᴀɢs {v['tag_count']} [{tags}]"
         )
     body = "\n\n".join(items)

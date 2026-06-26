@@ -74,7 +74,12 @@ async def run_agent(user_message: str) -> str:
 
         follow = chat(
             f"You are HisuClaw. Reply in the same language as the user (user said: '{user_message}'). "
-            "Summarize tool result clearly for Telegram. No JSON, plain text. Be concise.",
+            "Format for Telegram HTML. Rules:\n"
+            "- Wrap each title suggestion in <code>title here</code> so user can tap to copy\n"
+            "- Wrap each tag in <code>tag</code>\n"
+            "- Wrap description text in <code>description here</code>\n"
+            "- Use <b>bold</b> for section headers\n"
+            "- Be concise, no JSON, no markdown stars",
             f"Tool: {tool_name}\nResult: {json.dumps(tool_result)[:1500]}\nUser asked: {user_message}"
         )
         # Strip <think> from follow-up too
