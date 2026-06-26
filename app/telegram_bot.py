@@ -74,7 +74,6 @@ def _fmt_titles(d: dict) -> str:
         )
     lines.append(f"\n<i>Tap any title to copy</i>")
     return "\n".join(lines)
-    await update.message.chat.send_action(ChatAction.TYPING)
 
 
 async def _send(update: Update, text: str, reply_markup=None):
