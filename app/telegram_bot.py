@@ -115,7 +115,15 @@ def _fmt_videos(d: dict) -> str:
     rows = []
     for i, v in enumerate(videos[:10], 1):
         bar = _bar(v["views"], max_views)
-        rows.append(f"{i:>2}. {bar} {v['views']:,}\n    <i>{v['title'][:55]}</i>")
+        tc = v.get("tag_count", 0)
+        dl = v.get("desc_len", 0)
+        tag_flag = "✓" if tc >= 10 else "!"
+        desc_flag = "✓" if dl >= 200 else "!"
+        rows.append(
+            f"{i:>2}. {bar} {v['views']:,}\n"
+            f"    <i>{v['title'][:50]}</i>\n"
+            f"    ᴛᴀɢs:{tc}[{tag_flag}] ᴅᴇsᴄ:{dl}ᴄ[{desc_flag}]"
+        )
     body = "\n".join(rows)
     return f"<b><blockquote>✦ ᴠɪᴅᴇᴏ ʀᴀɴᴋɪɴɢs ✦</blockquote>\n{DIV}\n<blockquote>{body}</blockquote>\n{DIV}</b>"
 

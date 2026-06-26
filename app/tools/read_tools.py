@@ -110,6 +110,8 @@ class AnalyzeVideos(Tool):
                 "views": int(v["statistics"].get("viewCount", 0)),
                 "likes": int(v["statistics"].get("likeCount", 0)),
                 "comments": int(v["statistics"].get("commentCount", 0)),
+                "tag_count": len(v["snippet"].get("tags", [])),
+                "desc_len": len(v["snippet"].get("description", "")),
             })
 
         videos.sort(key=lambda x: x["views"], reverse=True)
