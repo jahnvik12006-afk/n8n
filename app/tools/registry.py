@@ -9,6 +9,7 @@ from app.tools.generate_tools import (
     GenerateSeriesIdeas, GenerateContentStrategy, AuditSEO,
 )
 from app.tools.write_tools import UpdateTitle, UpdateDescription, UpdateTags
+from app.tools.download_tool import FetchDownloadFormats
 
 TOOLS: dict = {
     t.name: t for t in [
@@ -18,5 +19,6 @@ TOOLS: dict = {
         GenerateTitles(), GenerateDescriptions(), GenerateTags(),
         GenerateSeriesIdeas(), GenerateContentStrategy(), AuditSEO(),
         UpdateTitle(), UpdateDescription(), UpdateTags(),
+        FetchDownloadFormats(),
     ]
 }

@@ -4,6 +4,9 @@ import uuid
 import json
 import logging
 import asyncio
+import tempfile
+import httpx
+from pathlib import Path
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup,
     ReplyKeyboardMarkup,
@@ -389,6 +392,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     data = query.data
 
+    if data.startswith("dl:"):
+        _, token, idx, kind = data.split(":")
+        await _do_download(query, token, int(idx), kind)
+        return
+
     if data.startswith("menu:"):
         texts = {
             "analytics": _box("ᴀɴᴀʟʏᴛɪᴄs", ["/channel /videos /video /growth /retention /ctr /seo /competitors"]),
@@ -479,6 +487,126 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _send(update, response, reply_markup=MAIN_MENU)
 
 
+# { token: {formats, thumbnail, title} }
+_dl_pending: dict = {}
+
+
+@admin_only
+async def cmd_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await _send(update, _box("ᴅᴏᴡɴʟᴏᴀᴅ", ["Usage: /download <YouTube URL>"]))
+        return
+    url = context.args[0]
+    msg = await update.message.reply_text(
+        f"<b><blockquote>⏳ ꜰᴇᴛᴄʜɪɴɢ ꜰᴏʀᴍᴀᴛs...</blockquote></b>", parse_mode=ParseMode.HTML
+    )
+    try:
+        data = await TOOLS["FetchDownloadFormats"].execute(url=url)
+    except Exception as e:
+        await msg.edit_text(f"<b><blockquote>ᴇʀʀᴏʀ: {e}</blockquote></b>", parse_mode=ParseMode.HTML)
+        return
+
+    formats = [f for f in data.get("formats", []) if f.get("content_type") in ("mp4", "m4a", "opus")]
+    if not formats:
+        await msg.edit_text("<b><blockquote>ɴᴏ ꜰᴏʀᴍᴀᴛs ꜰᴏᴜɴᴅ.</blockquote></b>", parse_mode=ParseMode.HTML)
+        return
+
+    token = str(uuid.uuid4())[:8]
+    _dl_pending[token] = {"formats": formats, "thumbnail": data.get("thumbnail"), "orig_url": url}
+
+    # Build quality keyboard — video formats first, then audio
+    video_fmts = [f for f in formats if not f["is_audio"]]
+    audio_fmts = [f for f in formats if f["is_audio"]]
+
+    rows = []
+    for i, f in enumerate(video_fmts[:4]):
+        rows.append([InlineKeyboardButton(f"🎬 {f['quality']}", callback_data=f"dl:{token}:{i}:v")])
+    for i, f in enumerate(audio_fmts[:2]):
+        rows.append([InlineKeyboardButton(f"🎵 {f['quality']}", callback_data=f"dl:{token}:{i}:a")])
+
+    keyboard = InlineKeyboardMarkup(rows)
+    thumb = data.get("thumbnail", "")
+    info_text = _box("ᴅᴏᴡɴʟᴏᴀᴅ", [
+        f"ᴜʀʟ: <code>{url[:60]}</code>",
+        "sᴇʟᴇᴄᴛ ǫᴜᴀʟɪᴛʏ ʙᴇʟᴏᴡ ↓",
+    ])
+    await msg.delete()
+    if thumb:
+        await update.message.reply_photo(photo=thumb, caption=info_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+    else:
+        await update.message.reply_text(info_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+
+
+async def _do_download(query, token: str, fmt_idx: int, kind: str):
+    pending = _dl_pending.get(token)
+    if not pending:
+        await query.edit_message_text("<b><blockquote>ᴇxᴘɪʀᴇᴅ. ꜰᴇᴛᴄʜ ᴀɢᴀɪɴ.</blockquote></b>", parse_mode=ParseMode.HTML)
+        return
+
+    video_fmts = [f for f in pending["formats"] if not f["is_audio"]]
+    audio_fmts = [f for f in pending["formats"] if f["is_audio"]]
+    fmt = (video_fmts if kind == "v" else audio_fmts)[fmt_idx]
+
+    await query.edit_message_caption(
+        caption=f"<b><blockquote>⬇️ ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ <code>{fmt['quality']}</code>...\nᴘʟᴇᴀsᴇ ᴡᴀɪᴛ 🙏</blockquote></b>",
+        parse_mode=ParseMode.HTML,
+    ) if query.message.photo else await query.edit_message_text(
+        f"<b><blockquote>⬇️ ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ <code>{fmt['quality']}</code>...\nᴘʟᴇᴀsᴇ ᴡᴀɪᴛ 🙏</blockquote></b>",
+        parse_mode=ParseMode.HTML,
+    )
+
+    ext = fmt["content_type"]
+    tmp_path = Path(tempfile.gettempdir()) / f"hisuclaw_{token}.{ext}"
+
+    try:
+        async with httpx.AsyncClient(timeout=120, follow_redirects=True) as c:
+            async with c.stream("GET", fmt["url"]) as r:
+                r.raise_for_status()
+                with open(tmp_path, "wb") as f:
+                    async for chunk in r.aiter_bytes(65536):
+                        f.write(chunk)
+
+        caption = (
+            f"<b><blockquote>✦ ᴅᴏᴡɴʟᴏᴀᴅ ᴄᴏᴍᴘʟᴇᴛᴇ ✦</blockquote>\n{DIV}\n"
+            f"<blockquote>・ ǫᴜᴀʟɪᴛʏ: {fmt['quality']}\n"
+            f"・ ꜰᴏʀᴍᴀᴛ: {ext.upper()}\n"
+            f"⚠️ <i>ᴛʜɪs ꜰɪʟᴇ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ 5 ᴍɪɴs</i></blockquote>\n{DIV}</b>"
+        )
+
+        chat_id = query.message.chat_id
+        with open(tmp_path, "rb") as f:
+            if kind == "v":
+                sent = await query.get_bot().send_video(chat_id=chat_id, video=f, caption=caption, parse_mode=ParseMode.HTML)
+            else:
+                sent = await query.get_bot().send_audio(chat_id=chat_id, audio=f, caption=caption, parse_mode=ParseMode.HTML)
+
+        # Schedule delete of message + temp file after 5 mins
+        async def _cleanup():
+            await asyncio.sleep(300)
+            try:
+                await sent.delete()
+            except Exception:
+                pass
+            tmp_path.unlink(missing_ok=True)
+            _dl_pending.pop(token, None)
+
+        asyncio.create_task(_cleanup())
+
+        # Delete the "downloading" status message
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+
+    except Exception as e:
+        tmp_path.unlink(missing_ok=True)
+        await query.get_bot().send_message(
+            chat_id=query.message.chat_id,
+            text=f"<b><blockquote>ᴇʀʀᴏʀ: <code>{e}</code></blockquote></b>",
+            parse_mode=ParseMode.HTML,
+        )
+
+
 def build_application() -> Application:
     builder = Application.builder().token(TELEGRAM_BOT_TOKEN)
     if os.getenv("WEBHOOK_URL") or os.getenv("RENDER_EXTERNAL_URL"):
@@ -499,6 +627,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("title", cmd_title))
     app.add_handler(CommandHandler("description", cmd_description))
     app.add_handler(CommandHandler("tags", cmd_tags))
+    app.add_handler(CommandHandler("download", cmd_download))
     app.add_handler(CallbackQueryHandler(callback_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
     return app

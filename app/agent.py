@@ -19,7 +19,7 @@ Rules:
 - Use tools ONLY when user explicitly asks for data ("channel dikhao", "videos analyze karo", "growth check karo").
 - For advice/tips questions ("kya karu", "kaise badhao", "suggest karo") — answer directly from expertise, tailored to THIS channel's niche.
 - Give specific, actionable YouTube advice: thumbnails, title hooks, posting time, shorts strategy, hashtags, engagement tactics.
-- WRITE tools: only when user says "update kar" / "change kar" AND confirms.
+- If user sends a YouTube/Twitter URL and asks to download, use FetchDownloadFormats tool with that URL.
 - Never dump raw data as an answer. Interpret and explain.
 - Reply ONLY in JSON: {{"thought":"...","tool":"ToolName or null","tool_args":{{}},"response":"..."}}
 """
