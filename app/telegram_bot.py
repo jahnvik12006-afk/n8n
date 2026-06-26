@@ -309,19 +309,26 @@ async def cmd_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @admin_only
 async def cmd_strategy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await typing(update)
-    result = await TOOLS["GenerateContentStrategy"].execute()
-    raw = result.get("raw", "") or result.get("strategy", "")
-    # Strip JSON if LLM returned it
+    # Fetch real channel info so LLM knows the actual niche
+    ch = await TOOLS["AnalyzeChannel"].execute()
+    result = await TOOLS["GenerateContentStrategy"].execute(
+        channel_title=ch.get("title", ""),
+        channel_description=ch.get("description", ""),
+    )
     try:
-        parsed = json.loads(raw)
+        parsed = result if isinstance(result, dict) and "weekly" in result else json.loads(result.get("raw", "{}"))
         weekly = parsed.get("weekly", [])
         lines = [f"<b><blockquote>✦ ᴄᴏɴᴛᴇɴᴛ sᴛʀᴀᴛᴇɢʏ ✦</blockquote>\n{DIV}</b>"]
         for w in weekly:
-            lines.append(f"\n<b><blockquote>・ {w.get('day','')}</blockquote></b>")
-            lines.append(f"<blockquote>{w.get('content','')}\nTags: {', '.join(w.get('tags',[]))}</blockquote>")
+            tip = f"\n   💡 {w['tip']}" if w.get("tip") else ""
+            lines.append(
+                f"\n<b><blockquote>・ {w.get('day','')}</blockquote></b>"
+                f"\n<blockquote>{w.get('content','')}{tip}"
+                f"\nTags: {', '.join(w.get('tags',[]))}</blockquote>"
+            )
         await _send(update, "\n".join(lines))
-    except (json.JSONDecodeError, TypeError):
-        await _send(update, _box("ᴄᴏɴᴛᴇɴᴛ sᴛʀᴀᴛᴇɢʏ", [raw[:3000]]))
+    except Exception:
+        await _send(update, _box("ᴄᴏɴᴛᴇɴᴛ sᴛʀᴀᴛᴇɢʏ", [str(result)[:3000]]))
 
 
 @admin_only

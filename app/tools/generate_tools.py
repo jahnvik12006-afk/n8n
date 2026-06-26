@@ -31,21 +31,21 @@ class GenerateTitles(Tool):
             permission="GENERATE",
         )
 
-    async def run(self, topic: str, current_title: str = "", **kwargs) -> dict:
-        # Local score of current title
+    async def run(self, topic: str, current_title: str = "", channel_title: str = "", channel_description: str = "", **kwargs) -> dict:
+        channel_ctx = f"Channel: {channel_title}\nNiche: {channel_description[:200]}\n" if channel_title else ""
         current_score = score_title(current_title) if current_title else None
-
         prompt = (
-            f"Generate 5 CTR-optimized YouTube titles for a Hindi Manhwa/Manga recap channel.\n"
-            f"Topic: {topic}\n"
+            f"{channel_ctx}"
+            f"Generate 5 CTR-optimized YouTube titles for this channel.\n"
+            f"Topic/Video: {topic}\n"
             f"Current title: {current_title or 'none'}\n\n"
             f"Rules:\n"
             f"- 40-70 characters\n"
             f"- Use emotional triggers: {', '.join(EMOTIONAL_TRIGGERS[:6])}\n"
             f"- Use power words: {', '.join(POWER_WORDS[:5])}\n"
-            f"- 1-2 emojis per title: {', '.join(HINDI_HOOKS[:4])}\n"
-            f"- Mix Hindi + English (Hinglish) for maximum CTR\n"
-            f"- Include a curiosity gap or number when relevant\n"
+            f"- 1-2 emojis: {', '.join(HINDI_HOOKS[:4])}\n"
+            f"- Match the channel niche exactly, do not guess manhwa if channel is about something else\n"
+            f"- Hinglish (Hindi+English mix) for maximum Indian CTR\n"
             f'Return JSON: {{"titles": ["title1", "title2", "title3", "title4", "title5"]}}'
         )
         raw = chat(SYSTEM, prompt)
@@ -142,10 +142,13 @@ class GenerateContentStrategy(Tool):
             permission="GENERATE",
         )
 
-    async def run(self, focus: str = "growth", **kwargs) -> dict:
+    async def run(self, focus: str = "growth", channel_title: str = "", channel_description: str = "", **kwargs) -> dict:
+        channel_ctx = f"Channel name: {channel_title}\nChannel description: {channel_description}\n" if channel_title else ""
         prompt = (
-            f"Create a content strategy for a Hindi Manhwa/Manga recap YouTube channel. Focus: {focus}.\n"
-            "Include: best posting times for Indian audience, title hooks, thumbnail tips per content type.\n"
+            f"{channel_ctx}"
+            f"Create a content strategy for THIS YouTube channel. Focus: {focus}.\n"
+            "Base suggestions on the actual channel topic above — do NOT assume manhwa/manga unless that is the topic.\n"
+            "Include: best posting days/times for Indian audience, content ideas matching the channel niche, thumbnail tips.\n"
             'Return JSON: {"weekly": [{"day": "...", "content": "...", "tags": [...], "tip": "..."}], '
             '"monthly": [{"week": 1, "theme": "...", "goal": "..."}]}'
         )

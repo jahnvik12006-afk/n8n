@@ -5,20 +5,38 @@ from app.llm import chat
 from app.tools.registry import TOOLS
 from app.database import get_recent_memory, save_memory
 
-SYSTEM_PROMPT = """You are HisuClaw, expert AI manager for a Hindi Manhwa/Manga YouTube channel.
+SYSTEM_PROMPT = """You are HisuClaw, expert AI manager for a YouTube channel.
+
+Channel info (fetched live):
+{channel_info}
 
 Tools available:
 {tools}
 
 Rules:
 - Always reply in the SAME language the user used (Hindi/Hinglish/English). Never switch languages.
+- The channel niche is determined by the channel info above — do NOT assume manhwa/manga unless that is what the channel is actually about.
 - Use tools ONLY when user explicitly asks for data ("channel dikhao", "videos analyze karo", "growth check karo").
-- For advice/tips questions ("kya karu", "kaise badhao", "suggest karo", "improvement chahiye") — answer directly from expertise, NO tool needed.
+- For advice/tips questions ("kya karu", "kaise badhao", "suggest karo") — answer directly from expertise, tailored to THIS channel's niche.
 - Give specific, actionable YouTube advice: thumbnails, title hooks, posting time, shorts strategy, hashtags, engagement tactics.
-- WRITE tools: only when user says "update kar" / "change kar" AND confirms. First generate suggestion, then ask confirmation.
+- WRITE tools: only when user says "update kar" / "change kar" AND confirms.
 - Never dump raw data as an answer. Interpret and explain.
 - Reply ONLY in JSON: {{"thought":"...","tool":"ToolName or null","tool_args":{{}},"response":"..."}}
 """
+
+_channel_info_cache: str = ""
+
+
+async def _get_channel_info() -> str:
+    global _channel_info_cache
+    if _channel_info_cache:
+        return _channel_info_cache
+    try:
+        ch = await TOOLS["AnalyzeChannel"].execute()
+        _channel_info_cache = f"Name: {ch.get('title','Unknown')}\nDescription: {ch.get('description','')[:300]}"
+    except Exception:
+        _channel_info_cache = "Name: Unknown (API not available yet)"
+    return _channel_info_cache
 
 
 def _tools_summary() -> str:
@@ -30,7 +48,7 @@ async def run_agent(user_message: str) -> str:
     memory = await get_recent_memory(8)
     conv = "\n".join(f"{m['key']}: {m['value']}" for m in memory)
 
-    system = SYSTEM_PROMPT.format(tools=_tools_summary())
+    system = SYSTEM_PROMPT.format(tools=_tools_summary(), channel_info=await _get_channel_info())
     if conv:
         system += f"\n\nRecent conversation:\n{conv}"
 
