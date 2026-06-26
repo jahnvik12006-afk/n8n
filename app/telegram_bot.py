@@ -74,14 +74,16 @@ async def _send(update: Update, text: str, reply_markup=None):
 
 
 def _fmt_channel(d: dict) -> str:
-    subs = int(d.get("subscribers") or 0)
-    views = int(d.get("total_views") or 0)
+    rows = d.get("analytics_28d") or []
+    views_28 = int(rows[0][0]) if rows and rows[0] else 0
+    mins_28  = int(rows[0][1]) if rows and len(rows[0]) > 1 else 0
     return _box("ᴄʜᴀɴɴᴇʟ ɪɴꜰᴏ", [
-        f"ɴᴀᴍᴇ: {d.get('title', 'N/A')}",
-        f"sᴜʙsᴄʀɪʙᴇʀs: {subs:,}",
-        f"ᴛᴏᴛᴀʟ ᴠɪᴇᴡs: {views:,}",
+        f"ɴᴀᴍᴇ: <b>{d.get('title', 'N/A')}</b>",
+        f"sᴜʙsᴄʀɪʙᴇʀs: {int(d.get('subscribers') or 0):,}",
+        f"ᴛᴏᴛᴀʟ ᴠɪᴇᴡs: {int(d.get('total_views') or 0):,}",
         f"ᴠɪᴅᴇᴏs: {d.get('video_count', '?')}",
-        f"ʀᴇᴄᴇɴᴛ ᴜᴘʟᴏᴀᴅs: {d.get('recent_uploads', '?')}",
+        f"ᴠɪᴇᴡs (28ᴅ): {views_28:,}",
+        f"ᴡᴀᴛᴄʜ ᴛɪᴍᴇ (28ᴅ): {mins_28:,} ᴍɪɴs",
     ])
 
 
@@ -155,12 +157,19 @@ def _fmt_retention(d: dict) -> str:
     rows = d.get("retention_data", [])
     if not rows:
         return "<b><blockquote>ɴᴏ ʀᴇᴛᴇɴᴛɪᴏɴ ᴅᴀᴛᴀ.</blockquote></b>"
-    max_pct = max((float(r[2]) for r in rows if len(r) > 2), default=1)
+    # rows: [day, avgViewDuration, avgViewPercentage]
+    max_pct = max((float(r[2]) for r in rows if len(r) > 2), default=100)
+    avg_dur = sum(float(r[1]) for r in rows if len(r) > 1) / len(rows)
+    avg_pct = sum(float(r[2]) for r in rows if len(r) > 2) / len(rows)
+    summary = _box("ʀᴇᴛᴇɴᴛɪᴏɴ — ʟᴀsᴛ 28 ᴅᴀʏs", [
+        f"ᴀᴠɢ ᴠɪᴇᴡ ᴅᴜʀ: {avg_dur:.0f}s",
+        f"ᴀᴠɢ ᴠɪᴇᴡ %: {avg_pct:.1f}%",
+    ])
     daily = "\n".join(
-        f"・ {r[0][:15]}  {_bar(float(r[2]), max_pct, 8)}  {float(r[2]):.1f}%"
-        for r in rows[:8] if len(r) > 2
+        f"・ {r[0]}  {_bar(float(r[2]), max_pct, 10)}  {float(r[2]):.1f}%"
+        for r in rows if len(r) > 2
     )
-    return f"<b><blockquote>✦ ʀᴇᴛᴇɴᴛɪᴏɴ ✦</blockquote>\n{DIV}\n<blockquote>{daily}</blockquote>\n{DIV}</b>"
+    return f"{summary}\n<b><blockquote>{daily}</blockquote></b>"
 
 
 @admin_only
@@ -289,7 +298,18 @@ async def cmd_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_strategy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await typing(update)
     result = await TOOLS["GenerateContentStrategy"].execute()
-    await _send(update, f"*Content Strategy*\n━━━━━━━━━━━━━━━━━━━━\n{result.get('raw', 'N/A')}")
+    raw = result.get("raw", "") or result.get("strategy", "")
+    # Strip JSON if LLM returned it
+    try:
+        parsed = json.loads(raw)
+        weekly = parsed.get("weekly", [])
+        lines = [f"<b><blockquote>✦ ᴄᴏɴᴛᴇɴᴛ sᴛʀᴀᴛᴇɢʏ ✦</blockquote>\n{DIV}</b>"]
+        for w in weekly:
+            lines.append(f"\n<b><blockquote>・ {w.get('day','')}</blockquote></b>")
+            lines.append(f"<blockquote>{w.get('content','')}\nTags: {', '.join(w.get('tags',[]))}</blockquote>")
+        await _send(update, "\n".join(lines))
+    except (json.JSONDecodeError, TypeError):
+        await _send(update, _box("ᴄᴏɴᴛᴇɴᴛ sᴛʀᴀᴛᴇɢʏ", [raw[:3000]]))
 
 
 @admin_only
