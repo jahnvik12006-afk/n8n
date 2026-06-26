@@ -76,6 +76,10 @@ def _fmt_titles(d: dict) -> str:
     return "\n".join(lines)
 
 
+async def typing(update: Update):
+    await update.message.chat.send_action(ChatAction.TYPING)
+
+
 async def _send(update: Update, text: str, reply_markup=None):
     for i in range(0, len(text), 4000):
         try:
