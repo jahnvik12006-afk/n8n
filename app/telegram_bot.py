@@ -413,8 +413,16 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         texts = {
             "analytics": _box("ᴀɴᴀʟʏᴛɪᴄs", ["/channel /videos /video /growth /retention /ctr /seo /competitors"]),
             "updates":   _box("ᴜᴘᴅᴀᴛᴇs", ["/title /description /tags", "ʀᴇǫᴜɪʀᴇ ᴄᴏɴꜰɪʀᴍᴀᴛɪᴏɴ"]),
-            "ai":        _box("ᴀɪ ꜰᴇᴀᴛᴜʀᴇs", ["/report /strategy", "ᴏʀ ᴊᴜsᴛ ᴛʏᴘᴇ ʏᴏᴜʀ ǫᴜᴇsᴛɪᴏɴ"]),
-            "about":     _box("ʜɪsᴜᴄʟᴀᴡ ᴠ2.0", ["ɢʀᴏǫ ʟʟᴍ + ʏᴏᴜᴛᴜʙᴇ ᴀᴘɪ + ᴛᴇʟᴇɢʀᴀᴍ", "ʜɪɴᴅɪ ᴍᴀɴʜᴡᴀ ᴄʜᴀɴɴᴇʟ ᴍᴀɴᴀɢᴇʀ"]),
+            "ai":        _box("ᴀɪ ᴛᴏᴏʟs", [
+                "/hook <topic> — ᴠɪʀᴀʟ ᴏᴘᴇɴɪɴɢ ʜᴏᴏᴋs",
+                "/thumbnail <topic> — ᴛʜᴜᴍʙɴᴀɪʟ ᴛᴇxᴛ",
+                "/abtitle A | B — ᴄᴏᴍᴘᴀʀᴇ ᴛɪᴛʟᴇs",
+                "/shorts <topic> — sʜᴏʀᴛs ɪᴅᴇᴀs",
+                "/brief — ᴅᴀɪʟʏ ᴀᴄᴛɪᴏɴ ᴘʟᴀɴ",
+                "/spy <@handle> — ᴄᴏᴍᴘᴇᴛɪᴛᴏʀ ᴀɴᴀʟʏsɪs",
+                "/strategy /report — ᴄᴏɴᴛᴇɴᴛ ᴘʟᴀɴ",
+            ]),
+            "about":     _box("ʜɪsᴜᴄʟᴀᴡ ᴠ2.0", ["ɢʀᴏǫ ʟʟᴍ + ʏᴏᴜᴛᴜʙᴇ ᴀᴘɪ + ᴛᴇʟᴇɢʀᴀᴍ", "ʏᴏᴜᴛᴜʙᴇ ᴄʜᴀɴɴᴇʟ ᴍᴀɴᴀɢᴇʀ"]),
         }
         await query.edit_message_text(texts.get(data.split(":")[1], ""), parse_mode=ParseMode.HTML)
         return
@@ -506,6 +514,124 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await typing(update)
     response = await run_agent(text)
     await _send(update, response, reply_markup=MAIN_MENU)
+
+
+# ── Extra tool commands ────────────────────────────────────────────────────
+
+@admin_only
+async def cmd_hook(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    topic = " ".join(context.args)
+    if not topic:
+        await _send(update, "Usage: /hook <topic>"); return
+    await typing(update)
+    ch = await TOOLS["AnalyzeChannel"].execute()
+    r = await TOOLS["GenerateViralHook"].execute(topic=topic, channel_title=ch.get("title", ""))
+    hooks = r.get("hooks", [])
+    lines = [f"<b><blockquote>✦ ᴠɪʀᴀʟ ʜᴏᴏᴋs ✦</blockquote>\n{DIV}</b>"]
+    for i, h in enumerate(hooks, 1):
+        lines.append(f"\n<b>{i}. [{h.get('style','').upper()}]</b>\n<code>{h.get('hook','')}</code>\n<i>→ {h.get('why','')}</i>")
+    await _send(update, "\n".join(lines))
+
+
+@admin_only
+async def cmd_thumbnail(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    topic = " ".join(context.args)
+    if not topic:
+        await _send(update, "Usage: /thumbnail <topic>"); return
+    await typing(update)
+    ch = await TOOLS["AnalyzeChannel"].execute()
+    r = await TOOLS["GenerateThumbnailText"].execute(topic=topic, channel_title=ch.get("title", ""))
+    opts = r.get("options", [])
+    lines = [f"<b><blockquote>✦ ᴛʜᴜᴍʙɴᴀɪʟ ᴛᴇxᴛ ✦</blockquote>\n{DIV}</b>"]
+    for i, o in enumerate(opts, 1):
+        lines.append(f"\n{i}. <code>{o.get('text','')}</code>\n   <i>{o.get('psychology','')} — {o.get('ctr_reason','')}</i>")
+    lines.append(f"\n<i>Tap text to copy</i>")
+    await _send(update, "\n".join(lines))
+
+
+@admin_only
+async def cmd_abtitle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if len(context.args) < 2:
+        await _send(update, 'Usage: /abtitle "Title A" "Title B"'); return
+    await typing(update)
+    # join args and split by | for simplicity
+    full = " ".join(context.args)
+    parts = full.split("|", 1)
+    if len(parts) < 2:
+        await _send(update, 'Split titles with | — /abtitle Title A | Title B'); return
+    r = await TOOLS["CompareTitles"].execute(title_a=parts[0].strip(), title_b=parts[1].strip())
+    winner = r.get("winner", "?")
+    lines = [
+        f"<b><blockquote>✦ ᴛɪᴛʟᴇ A/B ᴛᴇsᴛ ✦</blockquote>\n{DIV}</b>",
+        f"\n<b>A:</b> <code>{parts[0].strip()}</code>  {_bar(r.get('score_a',0),100,8)} {r.get('score_a',0)}/100",
+        f"<b>B:</b> <code>{parts[1].strip()}</code>  {_bar(r.get('score_b',0),100,8)} {r.get('score_b',0)}/100",
+        f"\n<b>ᴡɪɴɴᴇʀ: {winner}</b>",
+        f"\n<b>ʙᴇsᴛ ᴠᴇʀsɪᴏɴ:</b>\n<code>{r.get('improved','')}</code>",
+    ]
+    await _send(update, "\n".join(lines))
+
+
+@admin_only
+async def cmd_shorts(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    topic = " ".join(context.args)
+    if not topic:
+        await _send(update, "Usage: /shorts <topic>"); return
+    await typing(update)
+    ch = await TOOLS["AnalyzeChannel"].execute()
+    r = await TOOLS["GenerateShortsIdeas"].execute(topic=topic, channel_title=ch.get("title", ""))
+    shorts = r.get("shorts", [])
+    lines = [f"<b><blockquote>✦ sʜᴏʀᴛs ɪᴅᴇᴀs ✦</blockquote>\n{DIV}</b>"]
+    for i, s in enumerate(shorts, 1):
+        tags = " ".join(f"#{t}" for t in s.get("hashtags", [])[:3])
+        lines.append(
+            f"\n{i}. <code>{s.get('title','')}</code>\n"
+            f"   <b>Hook:</b> {s.get('hook','')}\n"
+            f"   {s.get('outline','')}\n"
+            f"   <i>{tags}</i>"
+        )
+    await _send(update, "\n".join(lines))
+
+
+@admin_only
+async def cmd_brief(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await typing(update)
+    ch = await TOOLS["AnalyzeChannel"].execute()
+    r = await TOOLS["GenerateDailyBrief"].execute(
+        channel_title=ch.get("title", ""),
+        channel_description=ch.get("description", ""),
+        subscribers=ch.get("subscribers", 0),
+        recent_views=ch.get("total_views", 0),
+    )
+    await _send(update, _box("ᴅᴀɪʟʏ ʙʀɪᴇꜰ", [
+        f"↑ ᴜᴘʟᴏᴀᴅ ᴛɪᴍᴇ: {r.get('upload_time','')}",
+        f"✦ ɪᴅᴇᴀ: {r.get('content_idea','')}",
+        f"▶ sᴇᴏ: {r.get('seo_tip','')}",
+        f"· ᴇɴɢᴀɢᴇ: {r.get('engagement_tip','')}",
+        f"— {r.get('motivation','')}",
+    ]))
+
+
+@admin_only
+async def cmd_spy(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    url = " ".join(context.args)
+    if not url:
+        await _send(update, "Usage: /spy <channel_url or @handle>"); return
+    await typing(update)
+    r = await TOOLS["SpyCompetitor"].execute(channel_url=url)
+    if "error" in r:
+        await _send(update, _box("ᴇʀʀᴏʀ", [r["error"]])); return
+    top = r.get("top_videos", [])[:3]
+    top_lines = [f"・ <code>{v['title'][:50]}</code> — {v['views']:,} ᴠɪᴇᴡs" for v in top]
+    patterns = [f"・ {p}" for p in r.get("winning_patterns", [])]
+    steal = [f"・ {s}" for s in r.get("steal_ideas", [])]
+    lines = [
+        f"<b><blockquote>✦ sᴘʏ: {r.get('channel_name','')} ✦</blockquote>\n{DIV}</b>",
+        f"<blockquote>sᴜʙs: {r.get('subscribers',0):,}  ᴠɪᴇᴡs: {r.get('total_views',0):,}</blockquote>",
+        f"\n<b>ᴛᴏᴘ ᴠɪᴅᴇᴏs:</b>\n" + "\n".join(top_lines),
+        f"\n<b>ᴡɪɴɴɪɴɢ ᴘᴀᴛᴛᴇʀɴs:</b>\n" + "\n".join(patterns),
+        f"\n<b>sᴛᴇᴀʟ ɪᴅᴇᴀs:</b>\n" + "\n".join(steal),
+    ]
+    await _send(update, "\n".join(lines))
 
 
 # { token: {formats, thumbnail, title} }
@@ -649,6 +775,12 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("description", cmd_description))
     app.add_handler(CommandHandler("tags", cmd_tags))
     app.add_handler(CommandHandler("download", cmd_download))
+    app.add_handler(CommandHandler("hook", cmd_hook))
+    app.add_handler(CommandHandler("thumbnail", cmd_thumbnail))
+    app.add_handler(CommandHandler("abtitle", cmd_abtitle))
+    app.add_handler(CommandHandler("shorts", cmd_shorts))
+    app.add_handler(CommandHandler("brief", cmd_brief))
+    app.add_handler(CommandHandler("spy", cmd_spy))
     app.add_handler(CallbackQueryHandler(callback_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
     return app

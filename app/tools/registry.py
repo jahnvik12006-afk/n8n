@@ -10,6 +10,10 @@ from app.tools.generate_tools import (
 )
 from app.tools.write_tools import UpdateTitle, UpdateDescription, UpdateTags
 from app.tools.download_tool import FetchDownloadFormats
+from app.tools.extra_tools import (
+    GenerateViralHook, GenerateThumbnailText, CompareTitles,
+    GenerateShortsIdeas, GenerateCommentReplies, GenerateDailyBrief, SpyCompetitor,
+)
 
 TOOLS: dict = {
     t.name: t for t in [
@@ -20,5 +24,8 @@ TOOLS: dict = {
         GenerateSeriesIdeas(), GenerateContentStrategy(), AuditSEO(),
         UpdateTitle(), UpdateDescription(), UpdateTags(),
         FetchDownloadFormats(),
+        GenerateViralHook(), GenerateThumbnailText(), CompareTitles(),
+        GenerateShortsIdeas(), GenerateCommentReplies(), GenerateDailyBrief(),
+        SpyCompetitor(),
     ]
 }
