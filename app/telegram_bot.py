@@ -1,5 +1,6 @@
 """Telegram bot — admin-only, animepahe-style HTML UI."""
 import os
+import re
 import uuid
 import json
 import logging
@@ -473,6 +474,9 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(f"<b><blockquote>ᴇʀʀᴏʀ: <code>{e}</code></blockquote></b>", parse_mode=ParseMode.HTML)
 
 
+_YT_RE = re.compile(r'(https?://(?:www\.)?(?:youtube\.com/watch\S+|youtu\.be/\S+|twitter\.com/\S+|x\.com/\S+))', re.I)
+
+
 @admin_only
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
@@ -484,6 +488,12 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         if MENU_MAP[text] in handlers_map:
             await handlers_map[MENU_MAP[text]](update, context)
+        return
+    # Auto-detect YouTube/Twitter URL and trigger download flow
+    m = _YT_RE.search(text)
+    if m:
+        context.args = [m.group(1)]
+        await cmd_download(update, context)
         return
     await typing(update)
     response = await run_agent(text)
