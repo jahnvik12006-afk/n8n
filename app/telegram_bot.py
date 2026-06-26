@@ -554,12 +554,15 @@ async def cmd_abtitle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 2:
         await _send(update, 'Usage: /abtitle "Title A" "Title B"'); return
     await typing(update)
-    # join args and split by | for simplicity
     full = " ".join(context.args)
     parts = full.split("|", 1)
     if len(parts) < 2:
         await _send(update, 'Split titles with | — /abtitle Title A | Title B'); return
-    r = await TOOLS["CompareTitles"].execute(title_a=parts[0].strip(), title_b=parts[1].strip())
+    ch = await TOOLS["AnalyzeChannel"].execute()
+    r = await TOOLS["CompareTitles"].execute(
+        title_a=parts[0].strip(), title_b=parts[1].strip(),
+        channel_title=ch.get("title", ""), channel_description=ch.get("description", ""),
+    )
     winner = r.get("winner", "?")
     lines = [
         f"<b><blockquote>✦ ᴛɪᴛʟᴇ A/B ᴛᴇsᴛ ✦</blockquote>\n{DIV}</b>",

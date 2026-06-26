@@ -66,9 +66,10 @@ class CompareTitles(Tool):
             permission="GENERATE",
         )
 
-    async def run(self, title_a: str, title_b: str, **kwargs) -> dict:
+    async def run(self, title_a: str, title_b: str, channel_title: str = "", channel_description: str = "", **kwargs) -> dict:
+        ch_ctx = f"Channel: {channel_title}\nNiche: {channel_description[:150]}\n" if channel_title else ""
         return _llm(
-            f"Title A: {title_a}\nTitle B: {title_b}\n"
+            f"{ch_ctx}Title A: {title_a}\nTitle B: {title_b}\n"
             "Compare these two YouTube titles. Analyze: keyword strength, curiosity gap, length, emotion. "
             'JSON: {"winner": "A or B", "score_a": 0-100, "score_b": 0-100, '
             '"reasons_a": ["..."], "reasons_b": ["..."], "improved": "best combined version"}'
