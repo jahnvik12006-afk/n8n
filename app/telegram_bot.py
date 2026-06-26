@@ -223,6 +223,49 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _send(update, f"<b><blockquote>ʜᴇʟᴘ ᴍᴇɴᴜ — ᴄʜᴏᴏsᴇ ᴀ ᴄᴀᴛᴇɢᴏʀʏ</blockquote></b>", reply_markup=keyboard)
 
 
+# All commands with descriptions and whether they need args
+_ALL_CMDS = [
+    # (callback_id, label, section)
+    ("channel",     "Channel Overview",         "analytics"),
+    ("videos",      "Top Videos",               "analytics"),
+    ("growth",      "Growth (28d)",             "analytics"),
+    ("retention",   "Retention",                "analytics"),
+    ("ctr",         "CTR Analysis",             "analytics"),
+    ("seo",         "SEO Audit",                "analytics"),
+    ("competitors", "Competitors",              "analytics"),
+    ("report",      "Full Report",              "analytics"),
+    ("brief",       "Daily Brief",              "ai"),
+    ("strategy",    "Content Strategy",         "ai"),
+    ("hook",        "Viral Hook",               "ai"),
+    ("thumbnail",   "Thumbnail Text",           "ai"),
+    ("abtitle",     "A/B Title Test",           "ai"),
+    ("shorts",      "Shorts Ideas",             "ai"),
+    ("spy",         "Spy Competitor",           "ai"),
+    ("download",    "Download Video",           "tools"),
+]
+
+# Commands that need a text arg — bot will prompt user
+_NEEDS_ARG = {"hook", "thumbnail", "abtitle", "shorts", "spy", "download", "video", "title", "description", "tags"}
+
+
+@admin_only
+async def cmd_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    sections = {"analytics": [], "ai": [], "tools": []}
+    for cid, label, sec in _ALL_CMDS:
+        sections.setdefault(sec, []).append(
+            InlineKeyboardButton(label, callback_data=f"runcmd:{cid}")
+        )
+    rows = []
+    for sec, btns in sections.items():
+        # 2 per row
+        for i in range(0, len(btns), 2):
+            rows.append(btns[i:i+2])
+    await _send(update,
+        _box("ᴄᴏᴍᴍᴀɴᴅs", ["ᴛᴀᴘ ᴀɴʏ ᴄᴏᴍᴍᴀɴᴅ ᴛᴏ ʀᴜɴ"]),
+        reply_markup=InlineKeyboardMarkup(rows)
+    )
+
+
 @admin_only
 async def cmd_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await typing(update)
@@ -407,6 +450,37 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("dl:"):
         _, token, idx, kind = data.split(":")
         await _do_download(query, token, int(idx), kind)
+        return
+
+    if data.startswith("runcmd:"):
+        cmd = data.split(":")[1]
+        if cmd in _NEEDS_ARG:
+            prompts = {
+                "hook":        "Topic bhejo: /hook <topic>",
+                "thumbnail":   "Topic bhejo: /thumbnail <topic>",
+                "abtitle":     "Dono titles | se alag karke: /abtitle Title A | Title B",
+                "shorts":      "Topic bhejo: /shorts <topic>",
+                "spy":         "Competitor handle bhejo: /spy @handle",
+                "download":    "YouTube URL bhejo: /download <url>",
+                "video":       "Video ID bhejo: /video <video_id>",
+                "title":       "/title <video_id> <new title>",
+                "description": "/description <video_id> <new desc>",
+                "tags":        "/tags <video_id> <tag1,tag2,...>",
+            }
+            await query.answer(prompts.get(cmd, f"/{cmd} use karo"), show_alert=True)
+            return
+        fn_map = {
+            "channel": cmd_channel, "videos": cmd_videos, "growth": cmd_growth,
+            "retention": cmd_retention, "ctr": cmd_ctr, "seo": cmd_seo,
+            "competitors": cmd_competitors, "report": cmd_report,
+            "brief": cmd_brief, "strategy": cmd_strategy,
+        }
+        if cmd in fn_map:
+            await query.answer()
+            context.args = []
+            # Wrap query.message as a pseudo-update
+            update.message = query.message
+            await fn_map[cmd](update, context)
         return
 
     if data.startswith("menu:"):
@@ -764,6 +838,7 @@ def build_application() -> Application:
     app = builder.build()
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", cmd_help))
+    app.add_handler(CommandHandler("list", cmd_list))
     app.add_handler(CommandHandler("channel", cmd_channel))
     app.add_handler(CommandHandler("videos", cmd_videos))
     app.add_handler(CommandHandler("video", cmd_video))
