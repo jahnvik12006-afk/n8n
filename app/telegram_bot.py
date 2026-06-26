@@ -57,7 +57,19 @@ def admin_only(func):
     return wrapper
 
 
-async def typing(update: Update):
+def _fmt_titles(d: dict) -> str:
+    titles = d.get("titles", [])
+    cur = d.get("current_score")
+    lines = [f"<b><blockquote>✦ ᴄᴛʀ-ᴏᴘᴛɪᴍɪᴢᴇᴅ ᴛɪᴛʟᴇs ✦</blockquote>\n{DIV}</b>"]
+    if cur:
+        lines.append(f"<b><blockquote>ᴄᴜʀʀᴇɴᴛ sᴄᴏʀᴇ: {cur['score']}/100</blockquote></b>")
+    for i, t in enumerate(titles, 1):
+        bar = _bar(t["score"], 100, 8)
+        lines.append(
+            f"\n<b>{i}.</b> <i>{t['title']}</i>\n"
+            f"   {bar} {t['score']}/100 — {', '.join(t.get('reasons', []))}"
+        )
+    return "\n".join(lines)
     await update.message.chat.send_action(ChatAction.TYPING)
 
 

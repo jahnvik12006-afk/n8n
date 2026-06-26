@@ -6,7 +6,7 @@ from app.tools.read_tools import (
 )
 from app.tools.generate_tools import (
     GenerateTitles, GenerateDescriptions, GenerateTags,
-    GenerateSeriesIdeas, GenerateContentStrategy,
+    GenerateSeriesIdeas, GenerateContentStrategy, AuditSEO,
 )
 from app.tools.write_tools import UpdateTitle, UpdateDescription, UpdateTags
 
@@ -16,7 +16,7 @@ TOOLS: dict = {
         AnalyzeRetention(), AnalyzeCTR(), AnalyzeAudience(),
         AnalyzeGrowth(), AnalyzeSEO(), AnalyzeCompetitors(),
         GenerateTitles(), GenerateDescriptions(), GenerateTags(),
-        GenerateSeriesIdeas(), GenerateContentStrategy(),
+        GenerateSeriesIdeas(), GenerateContentStrategy(), AuditSEO(),
         UpdateTitle(), UpdateDescription(), UpdateTags(),
     ]
 }

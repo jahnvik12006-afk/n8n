@@ -1,82 +1,137 @@
-"""GENERATION tools — AI-powered content generation."""
+"""GENERATION tools — AI + local SEO engine."""
+import json
+import re
 from app.tools.base import Tool
 from app.llm import chat
+from app.seo_engine import (
+    score_title, generate_tags_for_topic, full_seo_audit,
+    EMOTIONAL_TRIGGERS, POWER_WORDS, HINDI_HOOKS,
+)
 
 SYSTEM = (
     "You are an expert YouTube SEO strategist for Hindi Manhwa/Manhua/Manga recap channels. "
-    "Respond in JSON format only."
+    "Respond in JSON only. No markdown, no explanation outside JSON."
 )
+
+
+def _extract_json(raw: str) -> dict:
+    raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+    try:
+        return json.loads(raw)
+    except Exception:
+        m = re.search(r"\{.*\}", raw, re.DOTALL)
+        return json.loads(m.group()) if m else {"raw": raw}
 
 
 class GenerateTitles(Tool):
     def __init__(self):
         super().__init__(
             name="GenerateTitles",
-            description="Generate CTR-optimized titles for Hindi audience",
+            description="Generate CTR-optimized titles with SEO scores",
             permission="GENERATE",
         )
 
     async def run(self, topic: str, current_title: str = "", **kwargs) -> dict:
+        # Local score of current title
+        current_score = score_title(current_title) if current_title else None
+
         prompt = (
             f"Generate 5 CTR-optimized YouTube titles for a Hindi Manhwa/Manga recap channel.\n"
             f"Topic: {topic}\n"
-            f"Current title: {current_title}\n"
-            "Return JSON: {{\"titles\": [\"...\", ...]}}"
+            f"Current title: {current_title or 'none'}\n\n"
+            f"Rules:\n"
+            f"- 40-70 characters\n"
+            f"- Use emotional triggers: {', '.join(EMOTIONAL_TRIGGERS[:6])}\n"
+            f"- Use power words: {', '.join(POWER_WORDS[:5])}\n"
+            f"- 1-2 emojis per title: {', '.join(HINDI_HOOKS[:4])}\n"
+            f"- Mix Hindi + English (Hinglish) for maximum CTR\n"
+            f"- Include a curiosity gap or number when relevant\n"
+            f'Return JSON: {{"titles": ["title1", "title2", "title3", "title4", "title5"]}}'
         )
-        result = chat(SYSTEM, prompt)
-        return {"raw": result}
+        raw = chat(SYSTEM, prompt)
+        data = _extract_json(raw)
+        titles = data.get("titles", [])
+
+        # Score each generated title
+        scored = [{"title": t, **score_title(t)} for t in titles]
+        scored.sort(key=lambda x: x["score"], reverse=True)
+
+        return {
+            "titles": scored,
+            "current_score": current_score,
+        }
 
 
 class GenerateDescriptions(Tool):
     def __init__(self):
         super().__init__(
             name="GenerateDescriptions",
-            description="Generate SEO-optimized descriptions",
+            description="Generate SEO-optimized descriptions with CTA",
             permission="GENERATE",
         )
 
     async def run(self, title: str, topic: str, **kwargs) -> dict:
         prompt = (
-            f"Generate an SEO-optimized YouTube description for a Hindi Manhwa recap video.\n"
-            f"Title: {title}\nTopic: {topic}\n"
-            "Include keywords, hashtags, timestamps placeholder. Return JSON: {{\"description\": \"...\"}}"
+            f"Generate a YouTube description for a Hindi Manhwa recap video.\n"
+            f"Title: {title}\nTopic: {topic}\n\n"
+            f"Must include:\n"
+            f"- Hook (first 2 lines visible before 'show more')\n"
+            f"- Timestamps placeholder (00:00 Intro, 02:00 Story, etc.)\n"
+            f"- Subscribe CTA with bell icon\n"
+            f"- 10-15 hashtags\n"
+            f"- Social links placeholder\n"
+            f"- Min 500 characters total\n"
+            f'Return JSON: {{"description": "..."}}'
         )
-        result = chat(SYSTEM, prompt)
-        return {"raw": result}
+        raw = chat(SYSTEM, prompt)
+        data = _extract_json(raw)
+        desc = data.get("description", raw)
+        return {"description": desc, "char_count": len(desc)}
 
 
 class GenerateTags(Tool):
     def __init__(self):
         super().__init__(
             name="GenerateTags",
-            description="Generate SEO tags",
+            description="Generate 25 SEO tags with local engine",
             permission="GENERATE",
         )
 
     async def run(self, title: str, topic: str, **kwargs) -> dict:
+        # Local engine first (no API needed)
+        local_tags = generate_tags_for_topic(topic)
+
+        # LLM adds channel-specific tags
         prompt = (
-            f"Generate 20 SEO YouTube tags for a Hindi Manhwa recap: Title: {title}, Topic: {topic}.\n"
-            "Return JSON: {{\"tags\": [\"...\", ...]}}"
+            f"Generate 15 additional YouTube tags for: Title: {title}, Topic: {topic}.\n"
+            f"Mix: broad (manhwa, manga), mid (manhwa hindi), long-tail (topic specific hindi recap).\n"
+            f'Return JSON: {{"tags": ["tag1", ...]}}'
         )
-        result = chat(SYSTEM, prompt)
-        return {"raw": result}
+        raw = chat(SYSTEM, prompt)
+        data = _extract_json(raw)
+        llm_tags = data.get("tags", [])
+
+        combined = list(dict.fromkeys(local_tags + llm_tags))[:30]
+        return {"tags": combined, "count": len(combined)}
 
 
 class GenerateSeriesIdeas(Tool):
     def __init__(self):
         super().__init__(
             name="GenerateSeriesIdeas",
-            description="New series ideas and trending recap topics",
+            description="Trending Manhwa series ideas for Hindi audience",
             permission="GENERATE",
         )
 
     async def run(self, **kwargs) -> dict:
         prompt = (
-            "Suggest 5 new trending Manhwa/Manhua/Manga recap series ideas for a Hindi YouTube channel. "
-            "Return JSON: {{\"ideas\": [{{\"title\": ..., \"reason\": ...}}, ...]}}"
+            "Suggest 5 trending Manhwa/Manhua series for a Hindi YouTube recap channel in 2025.\n"
+            "For each: series name, why it's trending, estimated CTR potential (high/medium/low), "
+            "one title idea.\n"
+            'Return JSON: {"ideas": [{"series": "...", "reason": "...", "ctr_potential": "...", "title_idea": "..."}, ...]}'
         )
-        result = chat(SYSTEM, prompt)
-        return {"raw": result}
+        raw = chat(SYSTEM, prompt)
+        return _extract_json(raw)
 
 
 class GenerateContentStrategy(Tool):
@@ -89,9 +144,22 @@ class GenerateContentStrategy(Tool):
 
     async def run(self, focus: str = "growth", **kwargs) -> dict:
         prompt = (
-            f"Create a weekly and monthly content strategy for a Hindi Manhwa/Manga recap YouTube channel. "
-            f"Focus: {focus}. "
-            "Return JSON: {{\"weekly\": [...], \"monthly\": [...]}}"
+            f"Create a content strategy for a Hindi Manhwa/Manga recap YouTube channel. Focus: {focus}.\n"
+            "Include: best posting times for Indian audience, title hooks, thumbnail tips per content type.\n"
+            'Return JSON: {"weekly": [{"day": "...", "content": "...", "tags": [...], "tip": "..."}], '
+            '"monthly": [{"week": 1, "theme": "...", "goal": "..."}]}'
         )
-        result = chat(SYSTEM, prompt)
-        return {"raw": result}
+        raw = chat(SYSTEM, prompt)
+        return _extract_json(raw)
+
+
+class AuditSEO(Tool):
+    def __init__(self):
+        super().__init__(
+            name="AuditSEO",
+            description="Full SEO audit of a video: title, description, tags scored locally",
+            permission="READ",
+        )
+
+    async def run(self, title: str = "", description: str = "", tags: list = None, **kwargs) -> dict:
+        return full_seo_audit(title, description, tags or [])
