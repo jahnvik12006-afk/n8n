@@ -15,6 +15,7 @@ def start_dialog(first_name: str) -> str:
         "<code>/help</code>    - This message",
         "<code>/trending</code>- Trending anime",
         "<code>/latest</code>  - Latest anime",
+        "<code>/content</code> - Content lists (anime,bollywood,hollywood...)",
         "<code>/post</code>    - Post anime by slug",
         "<code>/admin</code>   - Admin panel",
         "<code>/jobs</code>    - View job queue",
