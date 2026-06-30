@@ -21,7 +21,9 @@ async def search_anime(keyword: str, page: int = 0, per_page: int = 28) -> list[
     data = await fetch_search_results(keyword, page, per_page)
     results = []
     if data.get("code") == 0:
-        records = data.get("data", {}).get("records", [])
+        records = data.get("data", {}).get("subjectList", [])
+        if not records:
+            records = data.get("data", {}).get("records", [])
         results = [Anime.from_api(item) for item in records]
         await Cache.set(cache_key, __import__("json").dumps(records), ttl=300)
     return results
@@ -44,17 +46,16 @@ async def get_anime_detail(subject_id: str | None = None, detail_path: str | Non
 
 async def get_play_url(subject: dict, season: int, episode: int, language: str) -> str | None:
     subject_id = subject.get("subjectId", "")
-    detail_path = subject.get("detailPath", "")
     se = season if season > 0 else 0
     ep = episode if episode > 0 else 0
 
-    data = await fetch_play_info(subject_id, detail_path, se, ep)
+    data = await fetch_play_info(subject_id, se, ep)
     if data.get("code") == 0:
         streams = data.get("data", {}).get("streams", [])
         if streams:
             best = max(streams, key=lambda s: int(s.get("resolutions", "0").rstrip("p") or "0"))
             return best.get("url")
-    logger.warning("No play URL for %s S%02dE%02d", detail_path, season, episode)
+    logger.warning("No play URL for %s S%02dE%02d", subject.get("title", ""), season, episode)
     return None
 
 
@@ -62,7 +63,9 @@ async def get_recommendations(subject_id: str, page: int = 1, per_page: int = 12
     data = await fetch_recommendations(subject_id, page, per_page)
     results = []
     if data.get("code") == 0:
-        records = data.get("data", {}).get("records", [])
+        records = data.get("data", {}).get("subjectList", [])
+        if not records:
+            records = data.get("data", {}).get("records", [])
         results = [Anime.from_api(item) for item in records]
     return results
 
@@ -76,9 +79,9 @@ async def get_trending(page: int = 0, per_page: int = 18) -> list[Anime]:
     data = await fetch_trending(page, per_page)
     results = []
     if data.get("code") == 0:
-        records = data.get("data", {}).get("records", [])
-        results = [Anime.from_api(item) for item in records]
-        await Cache.set(cache_key, __import__("json").dumps(records), ttl=1800)
+        items = data.get("data", {}).get("subjectList", [])
+        results = [Anime.from_api(item) for item in items]
+        await Cache.set(cache_key, __import__("json").dumps(items), ttl=1800)
     return results
 
 
@@ -91,7 +94,7 @@ async def get_content_list(content_type: str, page: int = 1, per_page: int = 12)
     data = await fetch_content_list(content_type, page, per_page)
     results = []
     if data.get("code") == 0:
-        records = data.get("data", {}).get("records", [])
-        results = [Anime.from_api(item) for item in records]
-        await Cache.set(cache_key, __import__("json").dumps(records), ttl=1800)
+        items = data.get("data", {}).get("subjectList", [])
+        results = [Anime.from_api(item) for item in items]
+        await Cache.set(cache_key, __import__("json").dumps(items), ttl=1800)
     return results
