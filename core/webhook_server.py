@@ -5,6 +5,7 @@ from aiohttp import web
 from core.bot import Bot
 from core.config import config
 from core.logger import logger
+from core.database import Database
 from handlers.callback import handle_callback, get_user_flow, clear_user_flow
 from handlers.start import handle_start
 from handlers.admin import handle_admin_command
@@ -12,6 +13,7 @@ from handlers.search import handle_search
 from handlers.slug import handle_slug
 from handlers.upload import handle_single_upload, handle_multi_upload
 from handlers.channels import handle_channel_command
+from handlers.channel_list import handle_listchannels
 from handlers.jobs import handle_jobs_command
 from handlers.trending import handle_trending, handle_latest, handle_content
 from ui.templates import error_card
@@ -42,6 +44,7 @@ COMMAND_MAP = {
     "/addsub": handle_channel_command,
     "/removesub": handle_channel_command,
     "/listsub": handle_channel_command,
+    "/listchannels": handle_listchannels,
     "/post": handle_slug,
     "/trending": handle_trending,
     "/latest": handle_latest,
@@ -55,6 +58,10 @@ async def process_update(update: dict):
 
         if "callback_query" in update:
             await handle_callback(bot, update["callback_query"])
+            return
+
+        if "my_chat_member" in update:
+            await _handle_my_chat_member(update["my_chat_member"])
             return
 
         if "message" not in update:
@@ -118,6 +125,35 @@ async def process_update(update: dict):
 
     except Exception as e:
         logger.exception("Error processing update: %s", e)
+
+
+async def _handle_my_chat_member(member_update: dict):
+    try:
+        chat = member_update.get("chat", {})
+        new = member_update.get("new_chat_member", {})
+        status = new.get("status", "")
+        chat_id = str(chat.get("id", ""))
+        if not chat_id:
+            return
+
+        if status == "administrator":
+            await Database.db.memberships.update_one(
+                {"chat_id": chat_id},
+                {"$set": {
+                    "chat_id": chat_id,
+                    "title": chat.get("title", ""),
+                    "username": chat.get("username", ""),
+                    "type": chat.get("type", ""),
+                    "is_admin": True,
+                }},
+                upsert=True,
+            )
+            logger.info("Bot added as admin to: %s (%s)", chat.get("title", chat_id), chat_id)
+        elif status in ("left", "kicked"):
+            await Database.db.memberships.delete_one({"chat_id": chat_id})
+            logger.info("Bot removed from: %s (%s)", chat.get("title", chat_id), chat_id)
+    except Exception as e:
+        logger.exception("Error handling my_chat_member: %s", e)
 
 
 async def health_handler(request: web.Request) -> web.Response:

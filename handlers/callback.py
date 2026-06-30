@@ -1,4 +1,5 @@
 from core.bot import Bot
+from core.config import config
 from core.database import Database
 from core.logger import logger
 from middlewares.admin import ensure_admin
@@ -8,6 +9,7 @@ from ui.cards import build_detail_card
 from ui.buttons import language_selector, upload_mode_selector, channel_selector
 from ui.dialogs import ask_start_episode, ask_end_episode
 from ui.templates import error_card
+from ui.html_builder import build_inline_keyboard
 
 _user_flow: dict = {}
 
@@ -93,6 +95,46 @@ async def handle_callback(bot: Bot, callback: dict):
         elif action == "redirect":
             channel_id = parts[1]
             await bot.answer_callback_query(cb_id, f"Go to channel: {channel_id}")
+
+        elif action == "chsel":
+            ch_id = parts[1]
+            title = parts[2] if len(parts) > 2 else ch_id
+            markup = build_inline_keyboard([
+                [{"text": "⭐ Set as Main Channel", "callback_data": f"chmain:{ch_id}"}],
+                [{"text": "📋 Add as Sub Channel", "callback_data": f"chsub:{ch_id}:{title}"}],
+                [{"text": "Cancel", "callback_data": "cancel_flow:none"}],
+            ])
+            await bot.edit_message_text(
+                chat_id, message_id,
+                f"<b>{title}</b>\n\nSet as Main or Sub channel?",
+                reply_markup=markup,
+            )
+            await bot.answer_callback_query(cb_id)
+
+        elif action == "chmain":
+            ch_id = parts[1]
+            import os
+            os.environ["MAIN_CHANNEL"] = ch_id
+            config.MAIN_CHANNEL = ch_id
+            logger.info("Main channel set to %s", ch_id)
+            await bot.edit_message_text(chat_id, message_id, f"✅ Main channel set to <code>{ch_id}</code>")
+            await bot.answer_callback_query(cb_id, "Main channel updated")
+
+        elif action == "chsub":
+            ch_id = parts[1]
+            title = parts[2] if len(parts) > 2 else ch_id
+            name = title[:40]
+            await Database.db.channels.update_one(
+                {"channel_id": ch_id},
+                {"$set": {"name": name, "channel_id": ch_id}},
+                upsert=True,
+            )
+            logger.info("Sub channel added: %s (%s)", name, ch_id)
+            await bot.edit_message_text(
+                chat_id, message_id,
+                f"✅ Added <b>{name}</b> as sub channel.",
+            )
+            await bot.answer_callback_query(cb_id, "Sub channel added")
 
         else:
             await bot.answer_callback_query(cb_id, "Unknown action")

@@ -35,3 +35,4 @@ class Database:
         await cls._db.channels.create_index("name", unique=True)
         await cls._db.logs.create_index("created_at")
         await cls._db.anime_cache.create_index("slug", unique=True)
+        await cls._db.memberships.create_index("chat_id", unique=True)
