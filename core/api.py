@@ -57,17 +57,15 @@ async def _fetch_jwt_token() -> str | None:
     }
     client = HttpClient.get()
     resp = await client.post(url, json=body, headers=hdrs)
-    raw = resp.text
-    import re
-    match = re.search(r'x-user:\s*(\{.*?\})', raw, re.IGNORECASE)
-    if match:
+    x_user = resp.headers.get("x-user")
+    if x_user:
         try:
-            user_data = json.loads(match.group(1))
+            user_data = json.loads(x_user)
             _JWT_TOKEN = user_data.get("token")
             return _JWT_TOKEN
         except Exception:
             pass
-    logger.warning("Failed to fetch JWT token from x-user header")
+    logger.warning("Failed to fetch JWT token from x-user header (status %s)", resp.status_code)
     return None
 
 
