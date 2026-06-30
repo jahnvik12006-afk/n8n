@@ -46,10 +46,11 @@ async def get_anime_detail(subject_id: str | None = None, detail_path: str | Non
 
 async def get_play_url(subject: dict, season: int, episode: int, language: str) -> str | None:
     subject_id = subject.get("subjectId", "")
+    detail_path = subject.get("detailPath", "")
     se = season if season > 0 else 0
     ep = episode if episode > 0 else 0
 
-    data = await fetch_play_info(subject_id, se, ep)
+    data = await fetch_play_info(subject_id, detail_path, se, ep)
     if data.get("code") == 0:
         streams = data.get("data", {}).get("streams", [])
         if streams:

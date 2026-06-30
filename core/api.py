@@ -136,13 +136,24 @@ async def fetch_recommendations(subject_id: str, page: int = 1, per_page: int = 
     })
 
 
-async def fetch_play_info(subject_id: str, season: int = 0, episode: int = 0) -> dict:
+async def fetch_play_info(subject_id: str, detail_path: str, season: int = 0, episode: int = 0) -> dict:
     params = {
         "subjectId": subject_id,
         "se": str(season),
         "ep": str(episode),
     }
+    referer_path = f"/movies/{detail_path}?id={subject_id}&type=/movie/detail"
     hdrs = await _get_auth_headers()
+    hdrs["Origin"] = "https://h5.aoneroom.com"
+    hdrs["Referer"] = f"https://h5.aoneroom.com{referer_path}"
+    hdrs["X-Source"] = ""
+    hdrs["cdn"] = "Transsion"
+    hdrs["sec-ch-ua"] = '"Chromium";v="131", "Not_A Brand";v="24"'
+    hdrs["sec-ch-ua-mobile"] = "?1"
+    hdrs["sec-ch-ua-platform"] = '"Android"'
+    hdrs["Sec-Fetch-Dest"] = "empty"
+    hdrs["Sec-Fetch-Mode"] = "cors"
+    hdrs["Sec-Fetch-Site"] = "same-origin"
     client = HttpClient.get()
     url = f"https://h5.aoneroom.com/wefeed-h5-bff/web/subject/play?{urlencode(params)}"
     resp = await client.get(url, headers=hdrs)

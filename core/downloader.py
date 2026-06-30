@@ -38,7 +38,12 @@ async def _resolve_play_url(subject: dict, season: int, episode: int, language: 
 @with_retry()
 async def _download_file(url: str, file_path: str):
     client = HttpClient.get()
-    async with client.stream("GET", url) as resp:
+    headers = {
+        "Referer": "https://moviebox.org/",
+        "Origin": "https://moviebox.org",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    }
+    async with client.stream("GET", url, headers=headers) as resp:
         resp.raise_for_status()
         async with aiofiles.open(file_path, "wb") as f:
             async for chunk in resp.aiter_bytes(chunk_size=1048576):
