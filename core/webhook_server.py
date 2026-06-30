@@ -16,7 +16,7 @@ from handlers.slug import handle_slug
 from handlers.upload import handle_upload
 from handlers.channels import handle_channel_command
 from handlers.jobs import handle_jobs_command
-from handlers.trending import handle_trending, handle_latest
+from handlers.trending import handle_trending, handle_latest, handle_content
 from handlers.callback import get_user_flow, clear_user_flow
 from handlers.upload import handle_single_upload, handle_multi_upload
 from ui.templates import error_card
@@ -53,6 +53,7 @@ COMMAND_MAP = {
     "/post": handle_slug,
     "/trending": handle_trending,
     "/latest": handle_latest,
+    "/content": handle_content,
 }
 
 
