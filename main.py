@@ -20,7 +20,7 @@ async def main():
         await Database.connect()
         logger.info("MongoDB connected")
 
-        await HttpClient.get()
+        HttpClient.get()
         logger.info("HTTP client initialized")
 
         await ensure_pool()
