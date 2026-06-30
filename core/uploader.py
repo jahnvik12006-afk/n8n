@@ -1,26 +1,15 @@
-import os
-
-from core.bot import Bot
 from core.logger import logger
-from core.retry import with_retry
 
 
-@with_retry()
-async def upload_to_channel(channel_id: str, file_path: str, subject: dict, season: int, episode: int, language: str) -> bool:
+async def upload_to_channel(channel_id: str, cdn_url: str, subject: dict, season: int, episode: int, language: str) -> bool:
     caption = _build_caption(subject, season, episode, language)
-    bot = Bot.get()
 
     try:
-        await bot.send_video(channel_id, file_path, caption=caption)
-        logger.info("Uploaded %s to %s", file_path, channel_id)
-        return True
+        from core.streamer import stream_video_to_channel
+        return await stream_video_to_channel(channel_id, cdn_url, caption)
     except Exception as e:
         logger.exception("Upload to %s failed: %s", channel_id, e)
         return False
-    finally:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            logger.debug("Deleted temp file: %s", file_path)
 
 
 def _build_caption(subject: dict, season: int, episode: int, language: str) -> str:

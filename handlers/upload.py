@@ -6,7 +6,6 @@ from services.search import get_detail
 from services.metadata import extract_episode_range
 from ui.dialogs import job_queued_card
 from ui.templates import error_card
-from ui.html_builder import build_button
 
 import uuid
 from core.worker_pool import enqueue_job
@@ -44,8 +43,8 @@ async def handle_single_upload(bot: Bot, chat_id: int, reply_to_msg_id: int, slu
         await Database.db.jobs.insert_one(job)
         await enqueue_job(job)
 
-        await bot.send_message(chat_id, job_queued_card(job_id, slug, 1, language, channel_id),
-                               reply_markup=build_button("Cancel", f"cancel:{job_id}"))
+        text, markup = job_queued_card(job_id, slug, 1, language, channel_id)
+        await bot.send_message(chat_id, text, reply_markup=markup)
 
     except Exception as e:
         logger.exception("Single upload error: %s", e)
@@ -80,8 +79,8 @@ async def handle_multi_upload(bot: Bot, chat_id: int, reply_to_msg_id: int, slug
         await Database.db.jobs.insert_one(job)
         await enqueue_job(job)
 
-        await bot.send_message(chat_id, job_queued_card(job_id, slug, len(episodes), language, channel_id),
-                               reply_markup=build_button("Cancel", f"cancel:{job_id}"))
+        text, markup = job_queued_card(job_id, slug, len(episodes), language, channel_id)
+        await bot.send_message(chat_id, text, reply_markup=markup)
 
     except Exception as e:
         logger.exception("Multi upload error: %s", e)

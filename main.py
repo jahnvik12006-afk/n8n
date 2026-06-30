@@ -8,7 +8,7 @@ from core.config import config
 from core.database import Database
 from core.http_client import HttpClient
 from core.logger import logger
-from core.scheduler import start_scheduler
+
 from core.webhook_server import start_server
 from core.worker_pool import ensure_pool, requeue_pending_jobs
 
@@ -26,9 +26,6 @@ async def main():
         await ensure_pool()
         await requeue_pending_jobs()
         logger.info("Worker pool ready")
-
-        await start_scheduler()
-        logger.info("Scheduler started")
 
         if config.WEBHOOK_URL:
             bot = Bot.get()

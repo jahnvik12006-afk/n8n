@@ -28,6 +28,10 @@ def box_bot(width: int = 40) -> str:
     return f"{SYMBOLS['box_bot']}{box_line(width)}"
 
 
+def box_split(width: int = 40) -> str:
+    return f"{SYMBOLS['split']}{box_line(width)}"
+
+
 def tag_bold(text: str) -> str:
     return f"<b>{text}</b>"
 
@@ -42,3 +46,7 @@ def tag_pre(text: str) -> str:
 
 def kv_line(key: str, value: str) -> str:
     return f"{SYMBOLS['line_v']} {tag_code(f'{key:<12}: {value}')}"
+
+
+def kv_emoji(emoji: str, key: str, value: str) -> str:
+    return f"{SYMBOLS['line_v']} {emoji} {tag_code(f'{key:<8}: {value}')}"

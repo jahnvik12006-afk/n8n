@@ -21,7 +21,6 @@ class Database:
             cls._db = None
 
     @classmethod
-    @property
     def db(cls):
         return cls._db
 

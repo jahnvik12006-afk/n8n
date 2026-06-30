@@ -75,7 +75,8 @@ async def handle_callback(bot: Bot, callback: dict):
             if mode == "single":
                 await bot.send_message(chat_id, "Send episode number:")
             else:
-                await bot.send_message(chat_id, ask_start_episode(slug, language))
+                text, markup = ask_start_episode(slug, language)
+                await bot.send_message(chat_id, text, reply_markup=markup)
             await bot.answer_callback_query(cb_id)
 
         elif action == "cancel":

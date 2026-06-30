@@ -1,28 +1,20 @@
 import asyncio
-import hashlib
-import hmac
-import json
 
 from aiohttp import web
 
 from core.bot import Bot
 from core.config import config
 from core.logger import logger
-from handlers.callback import handle_callback
+from handlers.callback import handle_callback, get_user_flow, clear_user_flow
 from handlers.start import handle_start
 from handlers.admin import handle_admin_command
 from handlers.search import handle_search
 from handlers.slug import handle_slug
-from handlers.upload import handle_upload
+from handlers.upload import handle_single_upload, handle_multi_upload
 from handlers.channels import handle_channel_command
 from handlers.jobs import handle_jobs_command
 from handlers.trending import handle_trending, handle_latest, handle_content
-from handlers.callback import get_user_flow, clear_user_flow
-from handlers.upload import handle_single_upload, handle_multi_upload
 from ui.templates import error_card
-from ui.buttons import channel_selector
-from core.database import Database
-from services.search import perform_search
 
 
 async def webhook_handler(request: web.Request) -> web.Response:
@@ -41,15 +33,15 @@ COMMAND_MAP = {
     "/admin": handle_admin_command,
     "/stats": handle_admin_command,
     "/logs": handle_admin_command,
-    "/setmain": handle_admin_command,
-    "/addsub": handle_admin_command,
-    "/removesub": handle_admin_command,
-    "/listsub": handle_admin_command,
     "/reload": handle_admin_command,
     "/cache": handle_admin_command,
     "/jobs": handle_jobs_command,
     "/broadcast": handle_admin_command,
     "/cancel": handle_admin_command,
+    "/setmain": handle_channel_command,
+    "/addsub": handle_channel_command,
+    "/removesub": handle_channel_command,
+    "/listsub": handle_channel_command,
     "/post": handle_slug,
     "/trending": handle_trending,
     "/latest": handle_latest,
@@ -105,7 +97,8 @@ async def process_update(update: dict):
                     else:
                         flow["start_ep"] = ep
                         from ui.dialogs import ask_end_episode
-                        await bot.send_message(chat_id, ask_end_episode(slug, language, ep))
+                        text, markup = ask_end_episode(slug, language, ep)
+                        await bot.send_message(chat_id, text, reply_markup=markup)
                         return
                 except ValueError:
                     await bot.send_message(chat_id, error_card("Invalid episode number."))

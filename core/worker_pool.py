@@ -2,8 +2,8 @@ import asyncio
 
 from core.config import config
 from core.database import Database
-from core.downloader import download_episode
 from core.uploader import upload_to_channel
+from services.api_client import get_play_url
 from core.bot import Bot
 from core.logger import logger
 from ui.cards import build_upload_progress_card
@@ -65,10 +65,10 @@ async def _process_job(job: dict):
             reply_markup=build_button("Cancel", f"cancel:{job_id}"),
         )
 
-        file_path = await download_episode(subject, season, episode, language)
-        if file_path is None:
+        cdn_url = await get_play_url(subject, season, episode, language)
+        if cdn_url is None:
             await Database.db.jobs.update_one(
-                {"job_id": job_id}, {"$set": {"status": "Failed", "error": f"Download failed ep {episode}"}}
+                {"job_id": job_id}, {"$set": {"status": "Failed", "error": f"Play URL resolve failed ep {episode}"}}
             )
             return
 
@@ -82,7 +82,7 @@ async def _process_job(job: dict):
             reply_markup=build_button("Cancel", f"cancel:{job_id}"),
         )
 
-        success = await upload_to_channel(channel_id, file_path, subject, season, episode, language)
+        success = await upload_to_channel(channel_id, cdn_url, subject, season, episode, language)
         if not success:
             await Database.db.jobs.update_one(
                 {"job_id": job_id}, {"$set": {"status": "Failed", "error": f"Upload failed ep {episode}"}}
