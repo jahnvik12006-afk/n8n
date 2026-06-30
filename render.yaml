@@ -2,8 +2,7 @@ services:
   - type: web
     name: animehubbot
     runtime: python
-    repo: https://github.com/YOUR_USERNAME/YOUR_REPO
-    branch: main
+    branch: master
     buildCommand: pip install -r requirements.txt
     startCommand: python main.py
     envVars:
