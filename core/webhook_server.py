@@ -36,6 +36,7 @@ async def webhook_handler(request: web.Request) -> web.Response:
 
 COMMAND_MAP = {
     "/start": handle_start,
+    "/help": handle_start,
     "/admin": handle_admin_command,
     "/stats": handle_admin_command,
     "/logs": handle_admin_command,
